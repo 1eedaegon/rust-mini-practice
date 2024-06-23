@@ -19,7 +19,7 @@ use chrono::Utc;
 // 다만, rust의 trait은 문법에서 upper/lower/context bound를 제공하지 않는다.
 
 /*
-아래는 내가 trait을 활용한 spark에서 사용한 mixin 이다.
+아래는 내가 trait을 활용해서 spark에 사용한 mixin 이다.
 
 case class dataExample(name: String, age: Int)
 trait CustomSerializable extends Serializable
@@ -39,10 +39,47 @@ object SparkAppWithSerializable extends App with CustomSerializable {
 
   adults.foreach(println)
 
-  spark.stop()
+  spark.stop() 
+
+
+위 scala코드에서 extends App with CustomSerializable은 trait bound와 mixin을 동시에 사용한 예제이다.
+upper bound와 혼합하면 아래와 같은 형태가 나온다.
+
+class Zoo[T <: Animal with HasLegs](val animal: T) {
+  def showInfo(): Unit = {
+    println(s"Animal: ${animal.name}, Legs: ${animal.numberOfLegs}")
+  }
+}
+
+rust에서는 upper bound나 trait/mixin 동시 사용은 안되지만, generic을 활용한 multiple bound를 할 수 있다. 아래에서 보자.
+
+use std::fmt::Debug;
+use std::fmt::Display;
+
+fn print_info<T: Display + Debug>(item: T) {
+    println!("Display: {}", item);
+    println!("Debug: {:?}", item);
+}
+
+fn main() {
+    let value = 42;
+    print_info(value);
+}
+
+위의 fn print_into<T: Display + Debug>(item: T){}는 Display와 Debug trait을 동시에 사용하는 예제이다.
+T에 대한 구현이 Display도 가능하고 Debug도 가능하다는 의미다.
+헷갈리면 안되는 것이 위의 구현은 generic을 이용한 타입연산이기 때문에 pointer를 이용한 dynamic dispatch가 아닌 static dispatch이다.
+
+당연히 Golang의 pointer reciever처럼 runtime 참조 또한 가능하다.
+vtable에 포인터를 저장하고  dynamic dispatch를 통한 runtime method calling이 가능하다.
+즉, 다형성을 위한 syntax가 존재하는데, clang처럼 포인터를 저장하고 호출하거나
+golang처럼 "func(*structName) func(){}" 식의 포인터 호출이 아닌 "impl ~ for ~로 호출이 가능하다."
+
+example: impl traitName for structName{}
+다만, GC를 통한 메모리수집이나 다중 상속을 허용하지 않으므로 trait bound와 mixin을 동시에 사용하는 것은 불가능하다.
+
+후... Rust의 trait파트는 너무 쓸말이 많으니 넘어가자.
 */
-
-
 
 /*
     ====================
@@ -122,6 +159,7 @@ impl Number {
     }
 
     iota라는 incremental한 선언으로 사용하는 것으로 enum을 지정한다.
+
     Rust에서는 enum을 사용해서 아래와 같이 사용할 수 있다.
     한번 보자.
 */
@@ -155,10 +193,10 @@ impl fmt::Display for MyError {
     rust에선 derive(Debug)의 구현은 fmt::Display를 강제한다.
     fmt::Display를 구현하면, println!("{}", MyError::Forbidden)과 같이 사용할 수 있다.
 
-    * format!: 포맷된 문자열을 사용한다. js의 `hello {$world}`와 같은 템플릿 리터럴과 유사하다.
-    * write!: 출력 대상이 std::fmt::write를 구현한 버퍼나 파일같은 대상에 쓰기를 수행한다.
+    * format!: 포맷된 문자열을 사용하는 매크로. js의 `hello {$world}`와 같은 템플릿 리터럴과 유사하다.
+    * write!: 출력 대상이 std::fmt::write를 구현한 버퍼나 파일같은 대상에 쓰기를 수행하는 매크로.
     * fmt::Formatter: 출력을 위한 구조체, {}나 {:?}와 같은 String placeholder를 사용할 수 있다.
-    * fmt::Result: write!나 format!의 결과를 반환한다. Result를 반환하는 이유는 Rust의 에러처리 방식때문임.
+    * fmt::Result: write!나 format!의 결과를 반환한다. Result를 반환하는 이유는 Rust의 에러처리 방식 때문임
 
     Error trait을 자세히 보면 아래와 같음.
 
@@ -202,6 +240,7 @@ enum PasswordEnum {
     Unsecured(Password),
 }
 // enum에 trait을 붙여서 출력이 가능하게 해보자.
+// 아래 코드는 메서드를 
 // Dynamic dispatch
 impl fmt::Display for PasswordEnum {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Formatter {
@@ -216,7 +255,6 @@ impl fmt::Display for PasswordEnum {
         }
     }
 }
-
 
 impl PasswordEnum {
     fn is_secured(&self) -> bool {
@@ -233,7 +271,12 @@ impl PasswordEnum {
     ==== 3. Macros =====
     ====================
     ====================
+
+    
+
 */
+
+
 
 /*
     =====================
